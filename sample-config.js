@@ -203,7 +203,10 @@ config.paperTrader = {
   fee: 0.25,
   // how much slippage/spread should Gekko assume per trade?
   slippage: 0.05,
-  // what is the risk free return in % (to calculate sharpe ratio)
+}
+
+config.performanceAnalyzer = {
+  enabled: true,
   riskFreeReturn: 5
 }
 
@@ -355,10 +358,7 @@ config.sqlite = {
   dataDirectory: 'history',
   version: 0.1,
 
-  dependencies: [{
-    module: 'sqlite3',
-    version: '3.1.4'
-  }]
+  dependencies: []
 }
 
   // Postgres adapter example config (please note: requires postgres >= 9.5):

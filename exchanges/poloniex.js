@@ -97,7 +97,7 @@ Trader.prototype.getFee = function(callback) {
     if(err || data.error)
       return callback(err || data.error);
 
-    callback(false, parseFloat(data.takerFee));
+    callback(false, parseFloat(data.makerFee));
   }
   this.poloniex._private('returnFeeInfo', _.bind(set, this));
 }
@@ -133,11 +133,48 @@ Trader.prototype.checkOrder = function(order, callback) {
   this.poloniex.myOpenOrders(this.currency, this.asset, check);
 }
 
+Trader.prototype.getOrder = function(order, callback) {
+
+  var get = function(err, result) {
+
+    if(err)
+      return callback(err);
+
+    var price = 0;
+    var amount = 0;
+    var date = moment(0);
+
+    if(result.error === 'Order not found, or you are not the person who placed it.')
+      return callback(null, {price, amount, date});
+
+    _.each(result, trade => {
+
+      date = moment(trade.date);
+      price = ((price * amount) + (+trade.rate * trade.amount)) / (+trade.amount + amount);
+      amount += +trade.amount;
+
+    });
+
+    callback(err, {price, amount, date});
+  }.bind(this);
+
+  this.poloniex.returnOrderTrades(order, get);
+}
+
 Trader.prototype.cancelOrder = function(order, callback) {
+  var args = _.toArray(arguments);
   var cancel = function(err, result) {
+
+    // check if order is gone already
+    if(result.error === 'Invalid order number, or you are not the person who placed the order.')
+      return callback(true);
+
     if(err || !result.success) {
-      log.error('unable to cancel order', order, '(', err, result, ')');
+      log.error('unable to cancel order', order, '(', err, result, '), retrying');
+      return this.retry(this.cancelOrder, args);
     }
+
+    callback();
   }.bind(this);
 
   this.poloniex.cancelOrder(this.currency, this.asset, order, cancel);
