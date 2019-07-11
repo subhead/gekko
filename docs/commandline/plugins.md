@@ -13,18 +13,19 @@ Gekko currently has a couple plugins:
 - Campfire bot
 - Redis beacon
 - XMP Bot
+- and more..
 
 To configure a plugin, open up your `config.js` file with a text editor and configure the appropiate section.
 
 ## Trading Advisor
 
-If you want Gekko to provide automated trading advice you need to configure this in Gekko. Note that this is unrelated to automatic trading which is a plugin that creates order based on this advice. (So if you want automated trading you need both this advice as well as the auto trader.)
+If you want Gekko to provide automated trading advice you need to configure this in Gekko. Note that this is a different plugin than the  "trader" which is a responsible for actually creating orders based on this advice. (So if you want automated trading you need both this advice as well as the auto trader).
 
-Documentation about trading methods in Gekko can be found [here](./Trading_methods.md).
+Documentation about strategies in Gekko can be found [here](../strategies/introduction.md).
 
 ### Trader
 
-This plugin automatically creates orders based on the advice on the market it is watching. This turns Gekko into an automated trading bot. 
+This plugin automatically creates orders based on the advice from the "Trading Advisor" from the market Gekko is watching. This turns Gekko into an automated trading bot.
 
 Before Gekko can automatically trade you need to create API keys so that Gekko has the rights to create orders on your behalf, the rights Gekko needs are (naming differs per exchange): get info, get balance/portfolio, get open orders, get fee, buy, sell and cancel order. For all exchanges you need the API key and the API secret, for both Bitstamp and CEX.io you also need your username (which is a number at Bitstamp).
 
@@ -74,12 +75,15 @@ Go to the config and configure it like this:
       simulationBalance: {
         // these are in the unit types configured in the watcher.
         asset: 1,
-        currency: 100,
+        currency: 100
       },
       // only want report after a sell? set to `false`.
       verbose: false,
       // how much fee in % does each trade cost?
-      fee: 0.6,
+      feeMaker: 0.5,
+      feeTaker: 0.6,
+      // Using taker or maker fee?
+      feeUsing: 'maker',
       // how much slippage should Gekko assume per trade?
       slippage: 0.1
     }
@@ -88,14 +92,14 @@ Go to the config and configure it like this:
 - reportInCurrency tells Gekko whether it should report in asset or in the currency.
 - simulationBalance tells Gekko with what balance it should start.
 - verbose specifies how often Gekko should log the results (false is after every trade, true is after every candle).
-- fee is the exchange fee (in %) Gekko should take into considarion when simulating orders.
+- fee is the exchange fee (in %) Gekko should take into consideration when simulating orders.
 - slippage is the costs in (in %) associated with not being able to buy / sell at market price.*
 
 *If you are trading a lot and you are buying 100% currency you might not get it all at market price and you have to walk the book in order to take that position. Also note that Gekko uses the candle close price and is unaware of the top asks bids, also take this into account. It is important that you set this number correctly or the resulted calculated profit be very wrong. Read more information [here](http://www.investopedia.com/terms/s/slippage.asp). Take these into consideration when setting a slippage:
 
 - How much spread is there normally on this market?
 - How thick is the top of the book normally?
-- How volatile is this market (the more volatility the bigger the change you will not get the price you expected)?
+- How volatile is this market (the more volatility the bigger the chance you will not get the price you expected)?
 
 The output will be something like:
 
@@ -123,10 +127,10 @@ Mailer will automatically email you whenever Gekko has a new advice.
       // fill in your email and password.
       //
       // WARNING: If you have NOT downloaded Gekko from the github page above we CANNOT
-      // guarantuee that your email address & password are safe!
+      // guarantee that your email address & password are safe!
 
       password: '',       // Your GMail Password - if not supplied Gekko will prompt on startup.
-      tag: '[GEKKO] ',      // Prefix all EMail subject lines with this
+      tag: '[GEKKO] '      // Prefix all EMail subject lines with this
     }
 
 - enabled indicates whether this is on or off.
@@ -142,7 +146,7 @@ Mailer will automatically email you whenever Gekko has a new advice.
   > fill in your email and password.
   >
   > WARNING: If you have NOT downloaded Gekko from the github page above we CANNOT
-  > guarantuee that your email address & password are safe!
+  > guarantee that your email address & password are safe!
 
 - tag is some text that Gekko will put in all subject lines so you can easily group all advices together.
 
@@ -196,7 +200,7 @@ This is an advanced plugin only for programmers! If you are interested in this r
         // the name of the event, set
         // an optional prefix to the
         // channel name.
-      channelPrefix: '', 
+      channelPrefix: '',
       broadcast: [
         'small candle'
       ]
@@ -207,3 +211,4 @@ This is an advanced plugin only for programmers! If you are interested in this r
 - host is the redis host.
 - channelPrefix a string that Gekko will prefix all candles with.
 - broadcast is a list of all events you want Gekko to publish.
+

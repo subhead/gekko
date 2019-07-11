@@ -1,4 +1,4 @@
-<template lang='jade'>
+<template lang='pug'>
   div
     #top
     header.bg--off-white.grd
@@ -10,8 +10,8 @@
         router-link(to='/live-gekkos').py1 Live Gekkos
         router-link(to='/backtest').py1 Backtest
         router-link(to='/data').py1 Local data
+        router-link(to='/config').py1 Config
         a(href='https://gekko.wizb.it/docs/introduction/about_gekko.html', target='_blank').py1 Documentation
-        a(href='https://github.com/askmike/gekko', target='_blank').py1 Code
 
 </template>
 
@@ -22,7 +22,6 @@ export default {}
 <style>
 .menu {
   display: flex;
-  width: 100%;
   flex-direction: row;
   margin-top: 0;
   margin-bottom: 2rem;

@@ -1,4 +1,4 @@
-var UIconfig = require('../vue/UIconfig');
+var UIconfig = require('../vue/dist/UIconfig');
 
 var config = {};
 
@@ -6,26 +6,33 @@ var config = {};
 //                          GENERAL SETTINGS
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-config.silent = true;
-config.debug = false;
+config.silent = false;
+config.debug = true;
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //                       CONFIGURING TRADING ADVICE
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 config.tradingAdvisor = {
-  talib: {
-    enabled: require('../supportsTalib'),
-    version: '1.0.2'
-  }
 }
+
 config.candleWriter = {
   enabled: false
 }
 
-config.adviceWriter = {
+config.backtestResultExporter = {
   enabled: false,
-  muteSoft: true,
+  writeToDisk: false,
+  data: {
+    stratUpdates: false,
+    roundtrips: true,
+    stratCandles: true,
+    trades: true
+  }
+}
+
+config.childToParent = {
+  enabled: false,
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -37,10 +44,9 @@ config.adapter = UIconfig.adapter;
 
 config.sqlite = {
   path: 'plugins/sqlite',
-
-  dataDirectory: 'history',
   version: 0.1,
-
+  dataDirectory: 'history',
+  journalMode: require('../isWindows.js') ? 'PERSIST' : 'WAL',
   dependencies: [{
     module: 'sqlite3',
     version: '3.1.4'
@@ -53,9 +59,10 @@ config.postgresql = {
   version: 0.1,
   connectionString: 'postgres://user:pass@localhost:5432', // if default port
   database: null, // if set, we'll put all tables into a single database.
+  schema: 'public',
   dependencies: [{
     module: 'pg',
-    version: '6.1.0'
+    version: '7.4.3'
   }]
 }
 
@@ -68,6 +75,11 @@ config.mongodb = {
     module: 'mongojs',
     version: '2.4.0'
   }]
+}
+
+config.adviceWriter = {
+  enabled: false,
+  muteSoft: true,
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

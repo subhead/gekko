@@ -28,11 +28,8 @@ var start = (mode, config) => {
 
   var dirs = util.dirs();
 
-  // force correct gekko mode
+  // force correct gekko mode & config
   util.setGekkoMode(mode);
-
-  // force disable debug
-  config.debug = false;
   util.setConfig(config);
 
   var pipeline = require(dirs.core + 'pipeline');
@@ -47,4 +44,23 @@ process.send('ready');
 process.on('message', function(m) {
   if(m.what === 'start')
     start(m.mode, m.config);
+
+  if(m.what === 'exit')
+    process.exit(0);
 });
+
+process.on('disconnect', function() {
+  console.log('disconnect');
+  process.exit(-1);
+})
+
+process
+  .on('unhandledRejection', (message, p) => {
+    console.error('unhandledRejection', message);
+    process.send({type: 'error', message: message});
+  })
+  .on('uncaughtException', err => {
+    console.error('uncaughtException', err);
+    process.send({type: 'error', error: err});
+    process.exit(1);
+  });

@@ -1,17 +1,17 @@
-var Poloniex = require("poloniex.js");
-var util = require('../../core/util.js');
-var _ = require('lodash');
-var moment = require('moment');
-var log = require('../../core/log');
+const util = require('../../core/util.js');
+const _ = require('lodash');
+const moment = require('moment');
+const log = require('../../core/log');
+const retry = require('../../exchange/exchangeUtils').retry;
 
-var config = util.getConfig();
+const config = util.getConfig();
 
-var dirs = util.dirs();
+const dirs = util.dirs();
 
-var Fetcher = require(dirs.exchanges + 'poloniex');
+const Fetcher = require(dirs.exchanges + 'poloniex');
 
-var batchSize = 60 * 2; // 2 hour
-var overlapSize = 10; // 10 minutes
+const batchSize = 60 * 2; // 2 hour
+const overlapSize = 10; // 10 minutes
 
 // Helper methods
 function joinCurrencies(currencyA, currencyB){
@@ -20,10 +20,10 @@ function joinCurrencies(currencyA, currencyB){
 
 // patch getTrades..
 Fetcher.prototype.getTrades = function(range, callback) {
-  var args = _.toArray(arguments);
-  var process = function(err, result) {
-    if(err || result.error)
-      return this.retry(this.getTrades, args);
+  const handle = (err, result) => {
+    if(err) {
+      return callback(err);
+    }
 
     if(_.size(result) === 50000) {
       // to many trades..
@@ -40,16 +40,17 @@ Fetcher.prototype.getTrades = function(range, callback) {
     });
 
     callback(result.reverse());
-  }.bind(this);
+  };
 
-  var params = {
+  const params = {
     currencyPair: joinCurrencies(this.currency, this.asset)
   }
 
   params.start = range.from.unix();
   params.end = range.to.unix();
 
-  this.poloniex._public('returnTradeHistory', params, process);
+  const fetch = next => this.poloniex._public('returnTradeHistory', params, this.processResponse(next));
+  retry(null, fetch, handle);
 }
 
 util.makeEventEmitter(Fetcher);
@@ -62,6 +63,8 @@ var fetcher = new Fetcher(config.watch);
 
 var fetch = () => {
   log.info(
+    config.watch.currency,
+    config.watch.asset,
     'Requesting data from',
     iterator.from.format('YYYY-MM-DD HH:mm:ss') + ',',
     'to',
@@ -82,8 +85,14 @@ var handleFetch = trades => {
   iterator.from.add(batchSize, 'minutes').subtract(overlapSize, 'minutes');
   iterator.to.add(batchSize, 'minutes').subtract(overlapSize, 'minutes');
 
-  if(!_.size(trades))
+  if(!_.size(trades)) {
+    // fix https://github.com/askmike/gekko/issues/952
+    if(iterator.to.clone().add(batchSize * 4, 'minutes') > end) {
+      fetcher.emit('done');
+    }
+
     return fetcher.emit('trades', []);
+  }
 
   var last = moment.unix(_.last(trades).date);
 

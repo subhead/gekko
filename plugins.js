@@ -14,6 +14,7 @@
 //    allowed to run. Realtime is during a live market watch and
 //    backtest is during a backtest.
 //
+//
 //  Optional parameters per plugin.
 //
 // description: text describing the plugin.
@@ -22,6 +23,8 @@
 // emits: events emitted by this plugin that other plugins can subscribe to.
 // path: fn that returns path of file of the plugin (overwrites `gekko/plugins/{slug}`)
 //    when given the configuration object (relative from `gekko/plugins/`).
+// greedy: if this plugin wants to subscribe to a lot of events, but can function
+//    properly when some events wont be emitted.
 var plugins = [
   {
     name: 'Candle writer',
@@ -38,7 +41,7 @@ var plugins = [
     slug: 'tradingAdvisor',
     async: true,
     modes: ['realtime', 'backtest'],
-    emits: ['advice'],
+    emits: true,
     path: config => 'tradingAdvisor/tradingAdvisor.js',
   },
   {
@@ -49,7 +52,7 @@ var plugins = [
     modes: ['realtime'],
     dependencies: [{
       module: 'irc',
-      version: '0.3.6'
+      version: '0.5.2'
     }]
   },
   {
@@ -112,14 +115,6 @@ var plugins = [
     }]
   },
   {
-    name: 'Trader',
-    description: 'Follows the advice and create real orders.',
-    slug: 'trader',
-    async: true,
-    modes: ['realtime'],
-    path: config => 'trader/trader.js',
-  },
-  {
     name: 'Advice logger',
     description: '',
     slug: 'adviceLogger',
@@ -128,12 +123,31 @@ var plugins = [
     modes: ['realtime']
   },
   {
+    name: 'Trader',
+    description: 'Follows the advice and create real orders.',
+    slug: 'trader',
+    async: true,
+    modes: ['realtime'],
+    emits: true,
+    path: config => 'trader/trader.js',
+  },
+  {
     name: 'Paper Trader',
     description: 'Paper trader that simulates fake trades.',
     slug: 'paperTrader',
     async: false,
     modes: ['realtime', 'backtest'],
+    emits: true,
     path: config => 'paperTrader/paperTrader.js',
+  },
+  {
+    name: 'Performance Analyzer',
+    description: 'Analyzes performances of trades',
+    slug: 'performanceAnalyzer',
+    async: false,
+    modes: ['realtime', 'backtest'],
+    emits: true,
+    path: config => 'performanceAnalyzer/performanceAnalyzer.js',
   },
   {
     name: 'Redis beacon',
@@ -151,8 +165,71 @@ var plugins = [
     description: 'Sends advice to pushbullet.',
     slug: 'pushbullet',
     async: false,
+    modes: ['realtime'],
+    dependencies: [{
+      module: 'pushbullet',
+      version: '1.4.3'
+    }]
+  },
+  {
+    name: 'Kodi',
+    description: 'Sends advice to Kodi.',
+    slug: 'kodi',
+    async: false,
     modes: ['realtime']
   },
+  {
+    name: 'Twitter',
+    description: 'Sends trades to twitter.',
+    slug: 'twitter',
+    async: false,
+    modes: ['realtime'],
+    dependencies: [{
+      module: 'twitter',
+      version: '1.7.1'
+    }]
+  },
+  {
+    name: 'Slack',
+    description: 'Sends trades to slack channel.',
+    slug: 'slack',
+    async: false,
+    modes: ['realtime'],
+    dependencies: [{
+      module: '@slack/client',
+      version: '3.13.0'
+    }]
+  },
+  {
+    name: 'IFTTT',
+    description: 'Sends trades to IFTTT webhook.',
+    slug: 'ifttt',
+    async: false,
+    modes: ['realtime']
+  },
+  {
+    name: 'Event logger',
+    description: 'Logs all gekko events.',
+    slug: 'eventLogger',
+    async: false,
+    modes: ['realtime', 'backtest'],
+    greedy: true
+  },
+  {
+    name: 'Backtest result export',
+    description: 'Exports the results of a gekko backtest',
+    slug: 'backtestResultExporter',
+    async: false,
+    modes: ['backtest']
+  },
+  {
+    name: 'Child to parent',
+    description: 'Relays events from the child to the parent process',
+    slug: 'childToParent',
+    async: false,
+    modes: ['realtime'],
+    greedy: true
+  }
 ];
 
 module.exports = plugins;

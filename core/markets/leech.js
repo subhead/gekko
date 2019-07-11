@@ -1,6 +1,6 @@
 // a leech market is "semi-realtime" and pulls out candles of a
-// database (which is expected to be updated reguraly, like with a
-// realtime market running in parralel).
+// database (which is expected to be updated regularly, like with a
+// realtime market running in parallel).
 
 const _ = require('lodash');
 const moment = require('moment');
@@ -9,22 +9,18 @@ const util = require('../util');
 const dirs = util.dirs();
 const config = util.getConfig();
 
-const cp = require(dirs.core + 'cp');
+const exchangeChecker = require(dirs.gekko + 'exchange/exchangeChecker');
 
 const adapter = config[config.adapter];
 const Reader = require(dirs.gekko + adapter.path + '/reader');
 
 const TICKINTERVAL = 20 * 1000; // 20 seconds
 
-const exchanges = require(dirs.gekko + 'exchanges');
-const exchange = _.find(exchanges, function(e) {
-  return e.slug === config.watch.exchange.toLowerCase();
-});
+const slug = config.watch.exchange.toLowerCase();
+const exchange = exchangeChecker.getExchangeCapabilities(slug);
 
 if(!exchange)
-  util.die(`Unsupported exchange: ${config.watch.exchange.toLowerCase()}`)
-
-const exchangeChecker = require(util.dirs().core + 'exchangeChecker');
+  util.die(`Unsupported exchange: ${slug}`)
 
 const error = exchangeChecker.cantMonitor(config.watch);
 if(error)
@@ -78,7 +74,6 @@ Market.prototype.processCandles = function(err, candles) {
     return;
   }
 
-
   // TODO:
   // verify that the correct amount of candles was passed:
   //
@@ -90,14 +85,7 @@ Market.prototype.processCandles = function(err, candles) {
     this.push(c);
   }, this);
 
-  this.sendStartAt(_.first(candles));
-  cp.lastCandle(_.last(candles));
-
   this.latestTs = _.last(candles).start.unix() + 1;
 }
-
-Market.prototype.sendStartAt = _.once(function(candle) {
-  cp.firstCandle(candle);
-});
 
 module.exports = Market;

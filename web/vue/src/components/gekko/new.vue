@@ -1,10 +1,11 @@
-<template lang='jade'>
+<template lang='pug'>
   div.contain.my2
     h3 Start a new gekko
     gekko-config-builder(v-on:config='updateConfig')
     .hr
     .txt--center(v-if='config.valid')
-      a.w100--s.my1.btn--blue(href='#', v-on:click.prevent='start') Start
+      a.w100--s.my1.btn--primary(href='#', v-on:click.prevent='start', v-if="!pendingStratrunner") Start
+      spinner(v-if='pendingStratrunner')
 </template>
 
 <script>
@@ -13,10 +14,12 @@ import _ from 'lodash'
 import Vue from 'vue'
 import { post } from '../../tools/ajax'
 import gekkoConfigBuilder from './gekkoConfigBuilder.vue'
+import spinner from '../global/blockSpinner.vue'
 
 export default {
   components: {
-    gekkoConfigBuilder
+    gekkoConfigBuilder,
+    spinner
   },
   data: () => {
     return {
@@ -25,8 +28,8 @@ export default {
     }
   },
   computed: {
-    watchers: function() {
-      return this.$store.state.watchers;
+    gekkos: function() {
+      return this.$store.state.gekkos;
     },
     watchConfig: function() {
       let raw = _.pick(this.config, 'watch', 'candleWriter');
@@ -53,18 +56,18 @@ export default {
       else {
         // TODO: figure out whether we can stitch data
         // without looking at the existing watcher
-        let optimal = moment().utc().startOf('minute')
+        const optimal = moment().utc().startOf('minute')
           .subtract(this.requiredHistoricalData, 'minutes')
           .unix();
 
-        let available = moment
-          .utc(this.existingMarketWatcher.firstCandle.start)
+        const available = moment
+          .utc(this.existingMarketWatcher.events.initial.candle.start)
           .unix();
 
         startAt = moment.unix(Math.max(optimal, available)).utc().format();
       }
 
-      let gekkoConfig = Vue.util.extend({
+      const gekkoConfig = Vue.util.extend({
         market: {
           type: 'leech',
           from: startAt
@@ -74,8 +77,26 @@ export default {
       return gekkoConfig;
     },
     existingMarketWatcher: function() {
-      let market = Vue.util.extend({}, this.watchConfig.watch);
-      return _.find(this.watchers, {watch: market});
+      const market = Vue.util.extend({}, this.watchConfig.watch);
+      return _.find(this.gekkos, {config: {watch: market}});
+    },
+    exchange: function() {
+      return this.watchConfig.watch.exchange;
+    },
+    existingTradebot: function() {
+      return _.find(
+        this.gekkos,
+        g => {
+          if(g.logType === 'tradebot' && g.config.watch.exchange === this.exchange) {
+            return true;
+          }
+
+          return false;
+        }
+      );
+    },
+    availableApiKeys: function() {
+      return this.$store.state.apiKeys;
     }
   },
   watch: {
@@ -84,12 +105,14 @@ export default {
       if(!this.pendingStratrunner)
         return;
 
-      if(val && val.firstCandle && val.lastCandle) {
+      const gekko = this.existingMarketWatcher;
+
+      if(gekko.events.latest.candle) {
         this.pendingStratrunner = false;
 
         this.startGekko((err, resp) => {
           this.$router.push({
-            path: `/live-gekkos/stratrunner/${resp.id}`
+            path: `/live-gekkos/${resp.id}`
           });
         });
       }
@@ -100,10 +123,24 @@ export default {
       this.config = config;
     },
     start: function() {
+
+      // if the user starts a tradebot we do some
+      // checks first.
+      if(this.config.type === 'tradebot') {
+        if(this.existingTradebot) {
+          let str = 'You already have a tradebot running on this exchange';
+          str += ', you can only run one tradebot per exchange.';
+          return alert(str);
+        }
+
+        if(!this.availableApiKeys.includes(this.exchange))
+          return alert('Please first configure API keys for this exchange in the config page.')
+      }
+
       // internally a live gekko consists of two parts:
       //
       // - a market watcher
-      // - a live gekko (strat runner + paper trader)
+      // - a live gekko (strat runner + (paper) trader)
       //
       // however if the user selected type "market watcher"
       // the second part won't be created
@@ -111,14 +148,14 @@ export default {
 
         // check if the specified market is already being watched
         if(this.existingMarketWatcher) {
-          alert('This market is already being watched, redirecting you now...')
+          alert('This market is already being watched, redirecting you now...');
           this.$router.push({
-            path: `/live-gekkos/watcher/${this.existingMarketWatcher.id}`
+            path: `/live-gekkos/${this.existingMarketWatcher.id}`
           });
         } else {
           this.startWatcher((error, resp) => {
             this.$router.push({
-              path: `/live-gekkos/watcher/${resp.id}`
+              path: `/live-gekkos/${resp.id}`
             });
           });
         }
@@ -134,7 +171,7 @@ export default {
           // the specified market is not yet being watched,
           // we need to create a watcher
           this.startWatcher((err, resp) => {
-            this.pendingStratrunner = true;
+            this.pendingStratrunner = resp.id;
             // now we just wait for the watcher to be properly initialized
             // (see the `watch.existingMarketWatcher` method)
           });
@@ -146,7 +183,7 @@ export default {
         return console.error(err, resp.error);
 
       this.$router.push({
-        path: `/live-gekkos/stratrunner/${resp.id}`
+        path: `/live-gekkos/${resp.id}`
       });
     },
     startWatcher: function(next) {

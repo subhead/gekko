@@ -78,16 +78,18 @@ var util = {
     + `\nNodejs version: ${process.version}`;
   },
   die: function(m, soft) {
-    if(_gekkoEnv === 'standalone' || !_gekkoEnv)
-      var log = console.log.bind(console);
-    else if(_gekkoEnv === 'child-process')
-      var log = m => process.send({type: 'error', error: m});
+
+    if(_gekkoEnv === 'child-process') {
+      return process.send({type: 'error', error: '\n ERROR: ' + m + '\n'});
+    }
+
+    var log = console.log.bind(console);
 
     if(m) {
       if(soft) {
         log('\n ERROR: ' + m + '\n\n');
       } else {
-        log('\n\nGekko encountered an error and can\'t continue');
+        log(`\nGekko encountered an error and can\'t continue`);
         log('\nError:\n');
         log(m, '\n\n');
         log('\nMeta debug info:\n');
@@ -104,7 +106,7 @@ var util = {
       gekko: ROOT,
       core: ROOT + 'core/',
       markets: ROOT + 'core/markets/',
-      exchanges: ROOT + 'exchanges/',
+      exchanges: ROOT + 'exchange/wrappers/',
       plugins: ROOT + 'plugins/',
       methods: ROOT + 'strategies/',
       indicators: ROOT + 'strategies/indicators/',
@@ -113,7 +115,8 @@ var util = {
       tools: ROOT + 'core/tools/',
       workers: ROOT + 'core/workers/',
       web: ROOT + 'web/',
-      config: ROOT + 'config/'
+      config: ROOT + 'config/',
+      broker: ROOT + 'exchange/'
     }
   },
   inherit: function(dest, source) {
@@ -160,7 +163,7 @@ var util = {
   },
   getStartTime: function() {
     return startTime;
-  }
+  },
 }
 
 // NOTE: those options are only used

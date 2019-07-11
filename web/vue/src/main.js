@@ -12,11 +12,11 @@ import home from './components/layout/home.vue'
 import data from './components/data/data.vue'
 import importer from './components/data/import/importer.vue'
 import singleImport from './components/data/import/single.vue'
+import config from './components/config/config.vue'
 
 import gekkoList from './components/gekko/list.vue'
 import newGekko from './components/gekko/new.vue'
-import singleStratrunner from './components/gekko/singleStratrunner.vue'
-import singleWatcher from './components/gekko/singleWatcher.vue'
+import singleGekko from './components/gekko/singleGekko.vue'
 import { connect as connectWS } from './components/global/ws'
 
 const router = new VueRouter({
@@ -26,13 +26,13 @@ const router = new VueRouter({
     { path: '/', redirect: '/home' },
     { path: '/home', component: home },
     { path: '/backtest', component: backtester },
+    { path: '/config', component: config },
     { path: '/data', component: data },
     { path: '/data/importer', component: importer },
     { path: '/data/importer/import/:id', component: singleImport },
     { path: '/live-gekkos', component: gekkoList },
     { path: '/live-gekkos/new', component: newGekko },
-    { path: '/live-gekkos/stratrunner/:id', component: singleStratrunner },
-    { path: '/live-gekkos/watcher/:id', component: singleWatcher }
+    { path: '/live-gekkos/:id', component: singleGekko },
   ]
 });
 

@@ -1,11 +1,11 @@
-<template lang='jade'>
-.contain
-  dataset-picker.contain.my2(v-on:dataset='updateDataset')
-  .hr
-  strat-picker.contain.my2(v-on:stratConfig='updateStrat')
-  .hr
-  paper-trader(v-on:settings='updatePaperTrader')
-  .hr
+<template lang='pug'>
+  div
+    dataset-picker.my2(v-on:dataset='updateDataset').contain
+    .hr
+    strat-picker.my2(v-on:stratConfig='updateStrat').contain
+    .hr
+    paper-trader(v-on:settings='updatePaperTrader').contain
+    .hr
 </template>
 
 <script>
@@ -14,13 +14,21 @@ import datasetPicker from '../global/configbuilder/datasetpicker.vue'
 import stratPicker from '../global/configbuilder/stratpicker.vue'
 import paperTrader from '../global/configbuilder/papertrader.vue'
 import _ from 'lodash'
+import { get } from '../../tools/ajax'
 
 export default {
+  created: function() {
+    get('configPart/performanceAnalyzer', (error, response) => {
+      this.performanceAnalyzer = toml.parse(response.part);
+      this.performanceAnalyzer.enabled = true;
+    });
+  },
   data: () => {
     return {
       dataset: {},
       strat: {},
-      paperTrader: {}
+      paperTrader: {},
+      performanceAnalyzer: {}
     }
   },
   components: {
@@ -58,11 +66,24 @@ export default {
         {
           backtest: {
             daterange: this.range
+          },
+          backtestResultExporter: {
+            enabled: true,
+            writeToDisk: false,
+            data: {
+              stratUpdates: false,
+              roundtrips: true,
+              stratCandles: true,
+              stratCandleProps: ['open'],
+              trades: true
+            }
           }
-        }
+        },
+        { performanceAnalyzer: this.performanceAnalyzer },
       );
 
       config.valid = this.validConfig(config);
+      config.backtestResultExporter.enabled = true;
 
       return config;
     }
@@ -99,7 +120,6 @@ export default {
     },
     updateDataset: function(set) {
       this.dataset = set;
-      // console.log('updateDataset', set);
       this.$emit('config', this.config);
     },
     updateStrat: function(sc) {
